@@ -10,7 +10,7 @@
 - korte links die rechtstreeks uit Excel gemaakt kunnen worden;
 - een lijst met woorden die in één boekje uitgesloten moeten worden;
 - downloaden van een unieke CSV-inspreeklijst;
-- eigen MP3-opnames met automatische browserstem als terugval;
+- eigen MP3-opnames met de vaste klankopnames als veilige terugval;
 - bestaande oude links met drie groepen.
 
 ## Woordenboek
@@ -46,7 +46,14 @@ Letterlab gebruikt deze volgorde:
 1. een opname die lokaal in het lesgeversgedeelte werd toegevoegd;
 2. een vaste opname van een losse klank;
 3. `assets/audio/woorden/eerste-letter/woord.mp3` voor een volledig woord;
-4. de Belgisch-Nederlandse browserstem.
+4. zonder volledige woordopname:
+   - bij **Alleen bestaande Nederlandse woorden**: bij voorkeur een Belgische
+     Nederlandse browserstem;
+   - bij vrije combinaties: de vaste klanken van het woord na elkaar.
+
+Losse letters en klanken gebruiken nooit de automatische browserstem. Zo wordt
+`k` niet als de letternaam *kaa* uitgesproken. Nonsenswoorden krijgen evenmin
+een browseruitspraak en kunnen dus niet per ongeluk Engels worden uitgesproken.
 
 Voorbeeld: de eigen uitspraak van `schorst` staat als
 `assets/audio/woorden/s/schorst.mp3`.
@@ -82,4 +89,3 @@ De volledige configuratie staat in de link. Er is geen databank nodig.
 - Test minstens één woord met eigen MP3 en één woord zonder MP3.
 - Test de Genially-insluiting op Android en iPhone, staand en liggend.
 - Bewaar de volledige ZIP en het Excelbestand als back-up.
-

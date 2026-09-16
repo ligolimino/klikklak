@@ -93,7 +93,7 @@
       name: parameters.get("naam") || "Klik-klakboekje",
       groups,
       onlyExistingWords:
-        parameters.get("woorden")?.trim().toLowerCase() === "ja",
+        parameters.get("woorden")?.trim().toLowerCase() !== "nee",
       dictionaryVersion: parameters.get("wb") || "v1",
       excludedWords: (parameters.get("uit") || "")
         .split(",")
@@ -202,7 +202,11 @@
       DATA.clickBook.kern.join(", "),
       DATA.clickBook.einde.join(", "),
     ],
-    onlyExistingWords: sharedExercise?.onlyExistingWords === true,
+    // Nieuwe boekjes starten veilig met de woordenfilter ingeschakeld.
+    // Een bestaande link blijft zijn expliciete keuze behouden.
+    onlyExistingWords: sharedExercise
+      ? sharedExercise.onlyExistingWords === true
+      : true,
     dictionaryVersion: sharedExercise?.dictionaryVersion || "v1",
     bookExcludedWords: (sharedExercise?.excludedWords || []).join(", "),
     bookEntries: null,
@@ -387,30 +391,62 @@
   // 4. AUDIO
   // ================================================================
 
-  function speak(text, key = text) {
-    // Volgorde van voorkeur:
-    // 1. een opname die de lesgever in de app toevoegde;
-    // 2. een vaste opname uit assets/audio/klanken;
-    // 3. de automatische browserstem als noodoplossing.
+  function resolveAudioSource(source) {
+    return source.startsWith("data:")
+      ? source
+      : new URL(source, DATA.baseUrl).href;
+  }
+
+  function playAudioSource(source) {
+    return new Promise((resolve, reject) => {
+      const audio = new Audio(resolveAudioSource(source));
+      audio.addEventListener("ended", resolve, { once: true });
+      audio.addEventListener("error", reject, { once: true });
+      audio.play().catch(reject);
+    });
+  }
+
+  async function playSoundSequence(parts) {
+    for (const part of parts) {
+      const source = ownAudio(`sound:${part}`) || builtInAudio(`sound:${part}`);
+      if (!source) continue;
+      try {
+        await playAudioSource(source);
+      } catch {
+        // Een ontbrekend of defect bestand mag nooit een browserstem activeren.
+      }
+    }
+  }
+
+  function useBrowserVoice(text, parts) {
+    if (!("speechSynthesis" in window)) {
+      playSoundSequence(parts);
+      return;
+    }
+
+    speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = speechSynthesis.getVoices?.() || [];
+    utterance.voice =
+      voices.find((voice) => voice.lang.toLowerCase() === "nl-be") ||
+      voices.find((voice) => voice.lang.toLowerCase().startsWith("nl")) ||
+      null;
+    utterance.lang = utterance.voice?.lang || "nl-BE";
+    utterance.rate = 0.72;
+    utterance.addEventListener("error", () => playSoundSequence(parts), {
+      once: true,
+    });
+    speechSynthesis.speak(utterance);
+  }
+
+  function speak(text, key = text, parts = []) {
+    // In het klik-klakboekje gebruiken we uitsluitend gecontroleerde opnames.
+    // Zo kan een browser nooit een letternaam of buitenlandse uitspraak kiezen.
     const selectedAudio = ownAudio(key) || builtInAudio(key);
 
     if (selectedAudio) {
-      const resolvedAudio = selectedAudio.startsWith("data:")
-        ? selectedAudio
-        : new URL(selectedAudio, DATA.baseUrl).href;
-
-      new Audio(resolvedAudio).play().catch(() => {});
+      playAudioSource(selectedAudio).catch(() => {});
       return;
-    }
-    function useBrowserVoice() {
-      if (!("speechSynthesis" in window)) return;
-      speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(
-        DATA.soundPrompts[text] || text,
-      );
-      utterance.lang = "nl-BE";
-      utterance.rate = 0.72;
-      speechSynthesis.speak(utterance);
     }
 
     if (key.startsWith("word:") && /^[a-z]+$/.test(text)) {
@@ -420,12 +456,21 @@
         DATA.baseUrl,
       ).href;
       const audio = new Audio(ownWordFile);
-      audio.addEventListener("error", useBrowserVoice, { once: true });
-      audio.play().catch(useBrowserVoice);
+      let fallbackStarted = false;
+      const useSafeFallback = () => {
+        if (fallbackStarted) return;
+        fallbackStarted = true;
+        const wordParts = parts.length ? parts : tokenize(text);
+        if (state.onlyExistingWords) {
+          useBrowserVoice(text, wordParts);
+        } else {
+          playSoundSequence(wordParts);
+        }
+      };
+      audio.addEventListener("error", useSafeFallback, { once: true });
+      audio.play().catch(useSafeFallback);
       return;
     }
-
-    useBrowserVoice();
   }
 
   function getCurrentQuestion() {
@@ -592,6 +637,7 @@
             class="listen"
             data-sound="${escapeHtml(word)}"
             data-audio-key="word:${escapeHtml(word)}"
+            data-word-parts="${escapeHtml(parts.join(","))}"
             aria-label="Luister"
           >${icon("speaker")}</button>
           <span>${escapeHtml(word)}</span>
@@ -1314,6 +1360,7 @@
       speak(
         target.dataset.sound,
         target.dataset.audioKey || `sound:${target.dataset.sound}`,
+        target.dataset.wordParts?.split(",").filter(Boolean) || [],
       );
       return;
     }
