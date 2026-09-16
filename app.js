@@ -496,16 +496,19 @@
     });
   }
 
-  function playAudioSource(source) {
+  function playAudioSource(source, shouldWarmUp = false) {
     return new Promise(async (resolve, reject) => {
-      // Meteen bij de gebruikersklik activeren, vóór eventuele laadpauzes.
-      const context = prepareAudioContext();
+      // Alleen volledige woorden hebben de extra opwarming nodig. Losse
+      // letters moeten zonder merkbare wachttijd reageren.
+      const context = shouldWarmUp ? prepareAudioContext() : null;
       const audio = new Audio(resolveAudioSource(source));
       audio.preload = "auto";
 
       try {
         await waitUntilAudioCanPlay(audio);
-        await warmUpAudioOutputIfNeeded(context);
+        if (shouldWarmUp) {
+          await warmUpAudioOutputIfNeeded(context);
+        }
 
         // Stop eerst een eventuele vorige opname. De korte pauze voorkomt dat
         // sommige telefoons het begin van de nieuwe opname inslikken.
@@ -516,7 +519,9 @@
 
         activeAudio = audio;
         audio.currentTime = 0;
-        await wait(AUDIO_START_DELAY_MS);
+        if (shouldWarmUp) {
+          await wait(AUDIO_START_DELAY_MS);
+        }
 
         audio.addEventListener(
           "ended",
@@ -550,7 +555,7 @@
       const source = ownAudio(`sound:${part}`) || builtInAudio(`sound:${part}`);
       if (!source) continue;
       try {
-        await playAudioSource(source);
+        await playAudioSource(source, false);
       } catch {
         // Een ontbrekend of defect bestand mag nooit een browserstem activeren.
       }
@@ -584,7 +589,7 @@
     const selectedAudio = ownAudio(key) || builtInAudio(key);
 
     if (selectedAudio) {
-      playAudioSource(selectedAudio).catch(() => {});
+      playAudioSource(selectedAudio, key.startsWith("word:")).catch(() => {});
       return;
     }
 
@@ -605,7 +610,7 @@
           playSoundSequence(wordParts);
         }
       };
-      playAudioSource(ownWordFile).catch(useSafeFallback);
+      playAudioSource(ownWordFile, true).catch(useSafeFallback);
       return;
     }
   }
