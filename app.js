@@ -406,11 +406,69 @@
       : new URL(source, DATA.baseUrl).href;
   }
 
-  const AUDIO_START_DELAY_MS = 150;
+  const AUDIO_START_DELAY_MS = 30;
+  const AUDIO_OUTPUT_IDLE_MS = 1200;
+  const AUDIO_WARMUP_LEAD_MS = 180;
+  const AUDIO_WARMUP_TOTAL_MS = 520;
   let activeAudio = null;
+  let audioContext = null;
+  let lastAudioActivityAt = 0;
 
   function wait(milliseconds) {
     return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  }
+
+  function prepareAudioContext() {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+
+    if (!audioContext) {
+      audioContext = new AudioContextClass();
+    }
+
+    // Deze functie wordt rechtstreeks vanuit de klik van de gebruiker gestart.
+    // Daardoor mag een mobiele browser de audiocontext activeren.
+    if (audioContext.state === "suspended") {
+      audioContext.resume().catch(() => {});
+    }
+
+    return audioContext;
+  }
+
+  async function warmUpAudioOutputIfNeeded(context) {
+    const audioWasRecentlyActive =
+      Date.now() - lastAudioActivityAt < AUDIO_OUTPUT_IDLE_MS;
+
+    if (audioWasRecentlyActive) return;
+
+    if (!context) {
+      await wait(AUDIO_WARMUP_LEAD_MS);
+      return;
+    }
+
+    try {
+      if (context.state === "suspended") {
+        await context.resume();
+      }
+
+      // Volledige digitale stilte zet sommige telefoonluidsprekers niet aan.
+      // Dit uiterst zachte signaal houdt de audio-uitvoer wakker tot het woord
+      // werkelijk begint. Het is normaal niet hoorbaar voor de gebruiker.
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.frequency.value = 80;
+      gain.gain.value = 0.001;
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + AUDIO_WARMUP_TOTAL_MS / 1000);
+      lastAudioActivityAt = Date.now();
+
+      await wait(AUDIO_WARMUP_LEAD_MS);
+    } catch {
+      // Zonder Web Audio blijft de gewone korte startpauze actief.
+      await wait(AUDIO_WARMUP_LEAD_MS);
+    }
   }
 
   function waitUntilAudioCanPlay(audio) {
@@ -440,11 +498,14 @@
 
   function playAudioSource(source) {
     return new Promise(async (resolve, reject) => {
+      // Meteen bij de gebruikersklik activeren, vóór eventuele laadpauzes.
+      const context = prepareAudioContext();
       const audio = new Audio(resolveAudioSource(source));
       audio.preload = "auto";
 
       try {
         await waitUntilAudioCanPlay(audio);
+        await warmUpAudioOutputIfNeeded(context);
 
         // Stop eerst een eventuele vorige opname. De korte pauze voorkomt dat
         // sommige telefoons het begin van de nieuwe opname inslikken.
@@ -460,6 +521,7 @@
         audio.addEventListener(
           "ended",
           () => {
+            lastAudioActivityAt = Date.now();
             if (activeAudio === audio) activeAudio = null;
             resolve();
           },
@@ -475,6 +537,7 @@
         );
 
         await audio.play();
+        lastAudioActivityAt = Date.now();
       } catch (error) {
         if (activeAudio === audio) activeAudio = null;
         reject(error);
