@@ -1,0 +1,947 @@
+/* ================================================================
+   1. Lettertype en kleuren
+   ================================================================ */
+
+@font-face {
+  font-family: Andika;
+  src: url("assets/fonts/andika-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Andika;
+  src: url("assets/fonts/andika-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+:root {
+  /* Pas hier de hoofdkleuren van de volledige app aan. */
+  --ink: #173042;
+  --teal: #087f8c;
+  --teal-dark: #08646d;
+  --blue: #d9f2f4;
+  --pink: #e7427a;
+  --paper: #f7fbfb;
+  --line: #c8dfe1;
+  --good: #16805d;
+  --bad: #c53b56;
+  --shadow: 0 12px 34px rgba(20, 67, 79, 0.13);
+}
+
+/* ================================================================
+   2. Algemene basisopmaak
+   ================================================================ */
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Andika, Arial, sans-serif;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button {
+  touch-action: manipulation;
+}
+.svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.app-shell {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ================================================================
+   3. Bovenbalk, pictogrammen en algemene knoppen
+   ================================================================ */
+
+.topbar {
+  height: 68px;
+  padding: 8px max(12px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  font-weight: 700;
+  color: var(--teal);
+  letter-spacing: 0.02em;
+}
+.top-actions {
+  display: flex;
+  gap: 10px;
+}
+.icon-btn {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--blue);
+  color: var(--teal-dark);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  outline: 3px solid rgba(231, 66, 122, 0.26);
+}
+.icon-btn.primary {
+  background: var(--pink);
+  color: #fff;
+}
+.icon-btn.good {
+  background: var(--good);
+  color: #fff;
+}
+.icon-btn.bad {
+  background: var(--bad);
+  color: #fff;
+}
+
+/* ================================================================
+   4. Startscherm
+   ================================================================ */
+
+.screen {
+  width: min(100%, 980px);
+  margin: auto;
+  padding: 10px max(14px, env(safe-area-inset-left))
+    calc(18px + env(safe-area-inset-bottom));
+}
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 240px));
+  gap: 20px;
+  justify-content: center;
+}
+.mode-card {
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 30px;
+  background: #fff;
+  color: var(--teal);
+  box-shadow: var(--shadow);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.mode-card:nth-child(2) {
+  color: var(--pink);
+}
+.mode-card .icon {
+  width: 42%;
+  height: 42%;
+  stroke-width: 1.35;
+}
+
+/* ================================================================
+   5. Dicteescherm en AZERTY-toetsenbord
+   ================================================================ */
+
+.dictation {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.dictation-finished {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+}
+.finished-check {
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--good);
+  color: white;
+}
+.finished-check .icon {
+  width: 65px;
+  height: 65px;
+}
+.dictation-finished h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 9vw, 4rem);
+}
+.finished-next {
+  color: var(--teal-dark);
+}
+.finished-next .icon {
+  width: 36px;
+  height: 36px;
+}
+.restart-button {
+  margin-top: 12px;
+  width: 45px;
+  height: 45px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--teal-dark);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.restart-button .icon {
+  width: 30px;
+  height: 30px;
+}
+.listen {
+  width: 84px;
+  height: 84px;
+  border-radius: 26px;
+  background: var(--teal);
+  color: #fff;
+  border: 0;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow);
+}
+.listen .icon {
+  width: 42px;
+  height: 42px;
+}
+.dictation-image {
+  display: block;
+  max-width: min(100%, 320px);
+  max-height: min(30svh, 210px);
+  object-fit: contain;
+  border-radius: 12px;
+}
+.word-slots {
+  min-height: 64px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.copy-word {
+  margin-bottom: 8px;
+  color: var(--ink);
+  font-size: clamp(2rem, 9vw, 4.5rem);
+  font-weight: 700;
+  text-align: center;
+}
+
+.edit-notice,
+.publication-message {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #fff3c4;
+  color: #533f00;
+  line-height: 1.45;
+}
+
+.publication-message {
+  background: #daf4ee;
+  color: #174b41;
+}
+
+.check-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  font-weight: 700;
+}
+
+.check-option input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--teal);
+}
+
+.question-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.question-option input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--teal);
+}
+
+.question-image-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.question-image-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: white;
+  border: 1px solid var(--line);
+}
+
+.image-picker {
+  cursor: pointer;
+}
+
+.dictation-image {
+  display: block;
+  max-width: min(68vw, 360px);
+  max-height: min(30vh, 360px);
+  margin: 0 auto 10px;
+  border-radius: 16px;
+  object-fit: contain;
+}
+
+.series-item-editable {
+  align-items: center;
+}
+
+.series-order {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.series-order .icon-btn {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.series-question {
+  flex: 1;
+  min-width: 0;
+}
+
+.series-missing {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.series-missing .chip {
+  min-width: 38px;
+  min-height: 38px;
+  padding: 5px 9px;
+}
+.slot {
+  min-width: 54px;
+  padding: 3px 8px 2px;
+  border-bottom: 5px solid var(--teal);
+  font-size: clamp(2.3rem, 10vw, 4.8rem);
+  line-height: 1;
+  text-align: center;
+  font-weight: 700;
+}
+.slot.missing {
+  color: var(--pink);
+  border-color: var(--pink);
+}
+.slot.wrong {
+  color: var(--bad);
+  border-color: var(--bad);
+  animation: shake 0.28s linear 2;
+}
+.slot.good {
+  color: var(--good);
+  border-color: var(--good);
+}
+@keyframes shake {
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+.feedback {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.feedback .icon {
+  width: 30px;
+  height: 30px;
+}
+.feedback .icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+.feedback .icon-btn .icon {
+  width: 25px;
+  height: 25px;
+}
+.feedback .icon-btn.bad {
+  background: #fee7ed;
+  color: var(--bad);
+}
+.feedback.good {
+  color: var(--good);
+}
+.feedback.bad {
+  color: var(--bad);
+}
+.keyboard {
+  width: min(100%, 760px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+.key-row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.key {
+  /* Andika Regular blijft leesbaar zonder dat de toets zwaar oogt. */
+  font-family: Andika, Arial, sans-serif;
+  font-weight: 400;
+  flex: 1;
+  max-width: 68px;
+  min-width: 0;
+  padding-right: 0;
+  padding-left: 0;
+  min-height: 54px;
+  border: 1px solid #b8d4d7;
+  border-bottom-width: 2px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-size: clamp(1.4rem, 5.5vw, 1.75rem);
+}
+/* De brede m krijgt iets kleinere letters, maar behoudt dezelfde aantikzone. */
+.key[data-key="m"] {
+  font-size: clamp(1.18rem, 4.7vw, 1.55rem);
+}
+.key:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+.key.wide {
+  max-width: 110px;
+  background: var(--blue);
+  color: var(--teal-dark);
+}
+
+/* ================================================================
+   6. Klik-klakboekje
+   ================================================================ */
+
+.booklet {
+  display: grid;
+  gap: 22px;
+}
+.book-word {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  font-size: clamp(3.6rem, 18vw, 8rem);
+  font-weight: 700;
+  color: var(--teal-dark);
+}
+.book-columns {
+  display: grid;
+  grid-template-columns: repeat(var(--book-columns, 3), minmax(0, 1fr));
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.book-col {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+}
+.sound-card {
+  min-height: 104px;
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  background: #fff;
+  color: var(--ink);
+  font-size: clamp(2.2rem, 10vw, 4.6rem);
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.sound-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.tiny-btn {
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--blue);
+  color: var(--teal-dark);
+  display: grid;
+  place-items: center;
+}
+.tiny-btn .icon {
+  width: 23px;
+  height: 23px;
+}
+.book-empty {
+  margin: auto;
+  max-width: 520px;
+  text-align: center;
+  font-size: 1.15rem;
+}
+
+/* ================================================================
+   7. Lesgeversgedeelte
+   ================================================================ */
+
+.teacher {
+  width: min(100%, 900px);
+  margin: auto;
+  padding: 22px 16px 48px;
+}
+.teacher h1 {
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  margin: 0 0 18px;
+}
+.teacher h2 {
+  font-size: 1.15rem;
+  margin: 0 0 12px;
+  color: var(--teal-dark);
+}
+.book-position-list {
+  display: grid;
+  gap: 10px;
+}
+.book-position-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+.book-position-row .field {
+  margin: 0;
+}
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  font-weight: 700;
+}
+.check-row input {
+  width: 22px;
+  height: 22px;
+}
+.panel {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 6px 18px rgba(20, 67, 79, 0.06);
+}
+.field {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+.field label {
+  font-weight: 700;
+}
+.text-input,
+.select {
+  width: 100%;
+  min-height: 50px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: #fff;
+  color: var(--ink);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  min-width: 45px;
+  min-height: 45px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  padding: 7px 11px;
+}
+.chip.active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+.chip.missing-choice.active {
+  background: var(--pink);
+  border-color: var(--pink);
+}
+.action {
+  min-height: 48px;
+  border: 0;
+  border-radius: 13px;
+  padding: 10px 16px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.action.secondary {
+  background: var(--blue);
+  color: var(--teal-dark);
+}
+.action.danger {
+  background: #fee7ed;
+  color: var(--bad);
+}
+.series {
+  display: grid;
+  gap: 8px;
+}
+.series-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: #f3f8f8;
+}
+.series-word {
+  font-size: 1.25rem;
+  font-weight: 700;
+  flex: 1;
+}
+.series-pattern {
+  color: #5c7280;
+  font-size: 0.9rem;
+}
+.series-item .icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #fee7ed;
+  color: var(--bad);
+}
+.series-item {
+  flex-wrap: wrap;
+}
+.series-image-field {
+  flex-basis: 100%;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+.suggestions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+.suggestion {
+  min-height: 48px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-weight: 700;
+}
+.suggestion.added {
+  background: #e7f7f0;
+  color: var(--good);
+  border-color: #acdcca;
+}
+.help {
+  color: #5c7280;
+  font-size: 0.92rem;
+  margin: 4px 0 12px;
+}
+.empty {
+  padding: 20px;
+  text-align: center;
+  color: #6d7f88;
+}
+.publish-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.exercise-list {
+  display: grid;
+  gap: 10px;
+}
+.exercise-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #f3f8f8;
+}
+.exercise-info {
+  flex: 1;
+  display: grid;
+}
+.exercise-info span {
+  color: #5c7280;
+  font-size: 0.9rem;
+}
+.exercise-item .action {
+  text-decoration: none;
+}
+.exercise-item .icon-btn {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  background: #fee7ed;
+  color: var(--bad);
+}
+
+/* ================================================================
+   8. Aanpassingen voor kleine en liggende schermen
+   ================================================================ */
+
+@media (max-width: 560px) {
+  .screen {
+    padding-top: 10px;
+  }
+  .screen.dictation {
+    /* Bijna geen binnenmarge: de tien AZERTY-toetsen krijgen zo meer breedte.
+       Vrije ruimte voor Genially maak je buiten het iframe, niet hier. */
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-left: max(4px, env(safe-area-inset-left));
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+  .topbar {
+    height: 62px;
+  }
+  .icon-btn {
+    width: 46px;
+    height: 46px;
+  }
+  .home-grid {
+    gap: 14px;
+  }
+  .mode-card {
+    border-radius: 24px;
+  }
+  .book-columns {
+    gap: 6px;
+  }
+  .sound-card {
+    min-height: 86px;
+    border-radius: 17px;
+  }
+  .word-slots {
+    gap: 5px;
+  }
+  .slot {
+    min-width: 42px;
+  }
+  .panel {
+    padding: 8px;
+  }
+  .exercise-item {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .exercise-info {
+    flex-basis: 100%;
+  }
+}
+@media (orientation: landscape) and (max-height: 620px) {
+  .topbar {
+    height: 54px;
+  }
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+  .screen {
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+  .dictation {
+    gap: 6px;
+  }
+  .listen {
+    width: 58px;
+    height: 58px;
+    border-radius: 18px;
+  }
+  .listen .icon {
+    width: 30px;
+    height: 30px;
+  }
+  .word-slots {
+    min-height: 58px;
+  }
+  .slot {
+    font-size: 2.5rem;
+  }
+  .feedback {
+    height: 40px;
+  }
+  .key {
+    min-height: 44px;
+  }
+  .booklet {
+    grid-template-columns: 1fr 2fr;
+    align-items: center;
+  }
+  .book-word {
+    font-size: 4rem;
+  }
+}
+
+
+/* Houd het volledige dictee zichtbaar op kleinere telefoons en in Genially. */
+@media (max-height: 740px) {
+  .screen.dictation {
+    height: 100svh;
+    min-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 5px;
+    padding-bottom: calc(5px + env(safe-area-inset-bottom));
+    gap: 4px;
+    overflow: hidden;
+    justify-content: center;
+  }
+
+  .dictation .listen {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    flex: 0 0 auto;
+  }
+
+  .dictation .listen .icon {
+    width: 29px;
+    height: 29px;
+  }
+
+  .dictation-image {
+    max-width: min(58vw, 250px);
+    max-height: 18svh;
+    margin-bottom: 2px;
+  }
+
+  .copy-word {
+    margin-bottom: 2px;
+    font-size: clamp(1.65rem, 7vw, 2.4rem);
+    line-height: 1;
+  }
+
+  .word-slots {
+    min-height: 45px;
+    gap: 5px;
+  }
+
+  .slot {
+    min-width: 38px;
+    padding: 2px 5px 1px;
+    border-bottom-width: 3px;
+    font-size: clamp(1.8rem, 8vw, 2.7rem);
+  }
+
+  .feedback {
+    height: 38px;
+  }
+
+  .feedback .icon-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .keyboard {
+    gap: 3px;
+    margin-top: clamp(4px, 1svh, 10px);
+  }
+
+  .key-row {
+    gap: 3px;
+  }
+
+  .key {
+    min-height: 46px;
+    border-radius: 9px;
+    font-size: clamp(1.2rem, 5vw, 1.55rem);
+  }
+}
+
+@media (max-height: 590px) {
+  .dictation .listen {
+    width: 48px;
+    height: 48px;
+  }
+
+  .dictation-image {
+    max-height: 12svh;
+  }
+
+  .copy-word {
+    font-size: 1.55rem;
+  }
+
+  .word-slots {
+    min-height: 39px;
+  }
+
+  .slot {
+    font-size: 1.75rem;
+  }
+
+  .feedback {
+    height: 34px;
+  }
+
+  .key {
+    min-height: 42px;
+  }
+}
