@@ -31,6 +31,9 @@ in het veld **Woorden uitsluiten** worden gezet en worden mee in de link bewaard
 
 1. Open `beheer/`.
 2. Vul de posities van het boekje in.
+   Gebruik `-` tussen de komma's wanneer die positie ook leeg mag zijn.
+   Voor een driedelig boekje kan positie 1 bijvoorbeeld `-, m, k` bevatten en
+   positie 3 `-, n, t`. Zo zijn ook woorden van twee letters mogelijk.
 3. Kies **Alleen bestaande Nederlandse woorden**.
 4. Kies **Woorden controleren**.
 5. Voeg ongewenste woorden toe bij **Woorden uitsluiten**.
@@ -77,9 +80,23 @@ Een link ziet er bijvoorbeeld zo uit:
 - `wb=v1`: woordenboekversie;
 - `woorden=ja`: alleen bestaande woorden;
 - `p1` tot en met `p8`: toegestane letters of klanken per positie;
+- `-` binnen een positie: die flap mag leeg zijn, bijvoorbeeld `p1=-,m,k`;
 - `uit=woord1,woord2`: woorden die niet mogen verschijnen.
 
 De volledige configuratie staat in de link. Er is geen databank nodig.
+
+### Een Excel-link opnieuw openen in het beheer
+
+1. Open `beheer/`.
+2. Plak de volledige Excel-link bij **Boekje uit Excel openen**.
+3. Kies **Boekje laden in beheer**.
+4. Alle posities, de woordenfilter, uitgesloten woorden, de naam en de
+   woordenboekversie worden geladen.
+5. Controleer of pas het boekje aan. Je kunt daarna meteen de inspreeklijst
+   downloaden of een nieuwe link klaarzetten.
+
+Ook langere klik-klaklinks die eerder via het beheer werden gemaakt, kunnen op
+dezelfde manier opnieuw worden geopend.
 
 ## Controle vóór publicatie
 

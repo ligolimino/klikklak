@@ -13,6 +13,14 @@ deze map. Schakel GitHub Pages in via `main` en `/ (root)`.
 
 Gebruik in Excel bij **Basislink Klik-klak** de cursistenlink hierboven.
 
+Een link uit Excel opnieuw beheren: open `beheer/`, plak de volledige link bij
+**Boekje uit Excel openen** en kies **Boekje laden in beheer**. Daarna zijn ook
+woordencontrole, aanpassingen en de CSV-inspreeklijst beschikbaar.
+
+Gebruik `-` als een positie ook leeg mag zijn, bijvoorbeeld `-, m, k` in
+positie 1 of `-, n, t` in positie 3. Daardoor kan een driedelig boekje ook
+woorden van twee letters vormen.
+
 Lees `BEHEER-KLIKKLAK.md` voor woordenlijsten en eigen MP3-opnames.
 
 ## Overstappen
@@ -20,4 +28,3 @@ Lees `BEHEER-KLIKKLAK.md` voor woordenlijsten en eigen MP3-opnames.
 Publiceer en test deze repository eerst. Vervang daarna eventuele bestaande
 links in Genially. Verwijder de oude gecombineerde repository pas wanneer alle
 vervangen links op pc, Android en iPhone werken.
-

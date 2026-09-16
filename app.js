@@ -70,8 +70,7 @@
     };
   }
 
-  function decodeShortClickBookFromUrl() {
-    const parameters = new URLSearchParams(location.search);
+  function decodeShortClickBookFromParameters(parameters) {
     const groups = [];
 
     for (let position = 1; position <= 8; position += 1) {
@@ -82,7 +81,8 @@
         .toLowerCase()
         .split(",")
         .map((part) => part.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map((part) => (part === "-" || part === "leeg" ? "" : part));
       if (group.length) groups.push(group);
     }
 
@@ -100,6 +100,12 @@
         .map((word) => word.trim().toLowerCase())
         .filter(Boolean),
     };
+  }
+
+  function decodeShortClickBookFromUrl() {
+    return decodeShortClickBookFromParameters(
+      new URLSearchParams(location.search),
+    );
   }
 
   function decodeExerciseFromUrl() {
@@ -131,7 +137,9 @@
       const exerciseUrl = new URL(url);
       const parameters = new URLSearchParams(exerciseUrl.hash.slice(1));
       const encodedExercise = parameters.get("oefening");
-      if (!encodedExercise) return null;
+      if (!encodedExercise) {
+        return decodeShortClickBookFromParameters(exerciseUrl.searchParams);
+      }
 
       const base64 = encodedExercise.replace(/-/g, "+").replace(/_/g, "/");
       const bytes = Uint8Array.from(atob(base64), (character) =>
@@ -216,6 +224,7 @@
     recording: null,
     editingExerciseId: null,
     publicationMessage: "",
+    linkToImport: "",
   };
 
   function saveToStorage() {
@@ -615,13 +624,17 @@
     const columns = groups
       .map((group, index) => {
         const value = parts[index];
+        const visibleValue = value ? escapeHtml(value) : "&nbsp;";
+        const soundAttributes = value
+          ? `data-sound="${escapeHtml(value)}"`
+          : 'aria-label="Lege positie"';
 
         return `<div class="book-col">
           <button class="tiny-btn" data-book="${index}" data-delta="-1" aria-label="Vorige">
             ${icon("up")}
           </button>
-          <button class="sound-card" data-sound="${escapeHtml(value)}">
-            ${escapeHtml(value)}
+          <button class="sound-card" ${soundAttributes}>
+            ${visibleValue}
           </button>
           <button class="tiny-btn" data-book="${index}" data-delta="1" aria-label="Volgende">
             ${icon("down")}
@@ -827,13 +840,30 @@
       .filter(Boolean);
   }
 
+  function splitBookPartList(value) {
+    const parts = value
+      .toLowerCase()
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => (part === "-" || part === "leeg" ? "" : part));
+
+    return [...new Set(parts)];
+  }
+
+  function formatBookPartList(group) {
+    return group.map((part) => part || "-").join(", ");
+  }
+
   function draftBookGroups() {
-    return state.clickBookDraftGroups.map(splitGraphemeList);
+    return state.clickBookDraftGroups.map(splitBookPartList);
   }
 
   function validDraftBookGroups(showMessage = true) {
     const groups = draftBookGroups();
-    const invalidPart = groups.flat().find((part) => !/^[a-z]+$/.test(part));
+    const invalidPart = groups
+      .flat()
+      .find((part) => part !== "" && !/^[a-z]+$/.test(part));
 
     if (groups.some((group) => group.length === 0)) {
       if (showMessage) alert("Vul voor elke positie minstens één letter of klank in.");
@@ -882,7 +912,7 @@
       ["woord", "opbouw", "voorgestelde bestandsnaam", "map in GitHub"],
       ...entries.map((entry) => [
         entry.word,
-        entry.parts.join(" - "),
+        entry.parts.map((part) => part || "(leeg)").join(" - "),
         `${entry.word}.mp3`,
         `assets/audio/woorden/${entry.word[0]}/`,
       ]),
@@ -931,6 +961,27 @@
     </section>`;
   }
 
+  function importClickBookPanel() {
+    return `<section class="panel">
+      <h2>Boekje uit Excel openen</h2>
+      <p class="help">Plak hier de volledige klik-klaklink uit Excel. Alle instellingen worden in het beheer geladen.</p>
+      <div class="field">
+        <label for="clickbook-link">Klik-klaklink</label>
+        <input
+          id="clickbook-link"
+          class="text-input"
+          type="url"
+          inputmode="url"
+          value="${escapeHtml(state.linkToImport)}"
+          placeholder="https://…?wb=v1&amp;woorden=ja&amp;p1=…&amp;p2=…"
+        >
+      </div>
+      <button class="action secondary" data-action="import-clickbook-link">
+        Boekje laden in beheer
+      </button>
+    </section>`;
+  }
+
   function clickBookPanel() {
     const positionFields = state.clickBookDraftGroups
       .map(
@@ -942,7 +993,7 @@
               class="text-input"
               data-book-draft="${index}"
               value="${escapeHtml(value)}"
-              placeholder="bijvoorbeeld m, k, p"
+              placeholder="bijvoorbeeld -, m, k, p"
             >
           </div>
           ${state.clickBookDraftGroups.length > 2 ? iconButton("close", `remove-book-position:${index}`, `Verwijder positie ${index + 1}`) : ""}
@@ -952,7 +1003,16 @@
 
     return `<section class="panel">
       <h2>Klik-klakboekje instellen</h2>
-      <p class="help">Scheid letters en clusters met komma's. Een boekje heeft twee tot acht posities.</p>
+      <p class="help">Scheid letters en clusters met komma's. Gebruik <strong>-</strong> om een positie ook leeg te laten. Een boekje heeft twee tot acht posities.</p>
+      <div class="field">
+        <label for="exercise-name">Naam van het boekje</label>
+        <input
+          id="exercise-name"
+          class="text-input"
+          value="${escapeHtml(state.exerciseName)}"
+          placeholder="bijvoorbeeld 1.3A – klik-klak"
+        >
+      </div>
       <div class="book-position-list">${positionFields}</div>
       ${state.clickBookDraftGroups.length < 8 ? `<button class="action secondary" data-action="add-book-position">${icon("plus")} Positie toevoegen</button>` : ""}
       <label class="check-row">
@@ -1011,6 +1071,7 @@
     app.innerHTML = `${header(false)}
       <main class="teacher">
         <h1>Instellingen klik-klak</h1>
+        ${importClickBookPanel()}
         ${clickBookPanel()}
         ${savedExercisesPanel()}
       </main>`;
@@ -1214,6 +1275,10 @@
       state.exerciseName = e.target.value;
     }
 
+    if (e.target.id === "clickbook-link") {
+      state.linkToImport = e.target.value;
+    }
+
     if (e.target.dataset.questionExample !== undefined) {
       const question = state.questions[Number(e.target.dataset.questionExample)];
       if (question) {
@@ -1315,9 +1380,7 @@
       }
 
       if (settings.type === "klikklak" || settings.groups) {
-        state.clickBookDraftGroups = settings.groups.map((group) =>
-          group.join(", "),
-        );
+        state.clickBookDraftGroups = settings.groups.map(formatBookPartList);
         state.onlyExistingWords = settings.onlyExistingWords === true;
         state.dictionaryVersion = settings.dictionaryVersion || "v1";
         state.bookExcludedWords = (settings.excludedWords || []).join(", ");
@@ -1481,6 +1544,23 @@
       }
     } else if (action === "preview-clickbook") {
       previewClickBook();
+    } else if (action === "import-clickbook-link") {
+      const settings = decodeExerciseFromUrlString(state.linkToImport.trim());
+      if (!settings || !(settings.type === "klikklak" || settings.groups)) {
+        alert("Deze klik-klaklink kon niet worden ingelezen. Kopieer de volledige link uit Excel.");
+        return;
+      }
+
+      state.clickBookDraftGroups = settings.groups.map(formatBookPartList);
+      state.onlyExistingWords = settings.onlyExistingWords === true;
+      state.dictionaryVersion = settings.dictionaryVersion || "v1";
+      state.bookExcludedWords = (settings.excludedWords || []).join(", ");
+      state.exerciseName = settings.name || "Klik-klakboekje";
+      state.editingExerciseId = null;
+      state.bookPreviewMessage = "De Excel-link is geladen. Je kunt het boekje nu controleren, aanpassen of de inspreeklijst downloaden.";
+      state.publicationMessage = "";
+      state.linkToImport = "";
+      manage();
     } else if (action === "download-word-list") {
       downloadWordList();
     } else if (action === "home") {
