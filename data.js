@@ -339,7 +339,7 @@ window.LETTERLAB_DATA = {
     "sound:oe": "assets/audio/klanken/oe.mp3",
     "sound:oo": "assets/audio/klanken/oo.mp3",
     "sound:p": "assets/audio/klanken/p.mp3",
-    "sound:r": "assets/audio/klanken/rollende_r.mp3",
+    "sound:r": "assets/audio/klanken/r.mp3",
     "sound:s": "assets/audio/klanken/s.mp3",
     "sound:sch": "assets/audio/klanken/sch.mp3",
     "sound:sl": "assets/audio/klanken/sl.mp3",
