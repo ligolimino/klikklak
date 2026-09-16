@@ -410,6 +410,7 @@
   const AUDIO_OUTPUT_IDLE_MS = 1200;
   const AUDIO_WARMUP_LEAD_MS = 180;
   const AUDIO_WARMUP_TOTAL_MS = 520;
+  const audioCache = new Map();
   let activeAudio = null;
   let audioContext = null;
   let lastAudioActivityAt = 0;
@@ -496,17 +497,38 @@
     });
   }
 
+  function getAudio(source) {
+    const resolvedSource = resolveAudioSource(source);
+    let audio = audioCache.get(resolvedSource);
+
+    if (!audio) {
+      audio = new Audio(resolvedSource);
+      audio.preload = "auto";
+      audioCache.set(resolvedSource, audio);
+      audio.load();
+    }
+
+    return audio;
+  }
+
+  // De korte, vaste letterklanken worden vooraf klaargezet en daarna steeds
+  // hergebruikt. Daardoor reageren ze weer even direct als in de eerste versie.
+  Object.values(DATA.builtInAudio).forEach((source) => {
+    if (source) getAudio(source);
+  });
+
   function playAudioSource(source, shouldWarmUp = false) {
     return new Promise(async (resolve, reject) => {
       // Alleen volledige woorden hebben de extra opwarming nodig. Losse
       // letters moeten zonder merkbare wachttijd reageren.
       const context = shouldWarmUp ? prepareAudioContext() : null;
-      const audio = new Audio(resolveAudioSource(source));
-      audio.preload = "auto";
+      const audio = getAudio(source);
 
       try {
-        await waitUntilAudioCanPlay(audio);
+        // Alleen woordopnames wachten expliciet tot er voldoende audio geladen
+        // is. Bij een losse letter start play() onmiddellijk vanuit de cache.
         if (shouldWarmUp) {
+          await waitUntilAudioCanPlay(audio);
           await warmUpAudioOutputIfNeeded(context);
         }
 
@@ -518,28 +540,22 @@
         }
 
         activeAudio = audio;
+        audio.pause();
         audio.currentTime = 0;
         if (shouldWarmUp) {
           await wait(AUDIO_START_DELAY_MS);
         }
 
-        audio.addEventListener(
-          "ended",
-          () => {
-            lastAudioActivityAt = Date.now();
-            if (activeAudio === audio) activeAudio = null;
-            resolve();
-          },
-          { once: true },
-        );
-        audio.addEventListener(
-          "error",
-          () => {
-            if (activeAudio === audio) activeAudio = null;
-            reject(audio.error || new Error("De audio kon niet worden afgespeeld."));
-          },
-          { once: true },
-        );
+        audio.onended = () => {
+          lastAudioActivityAt = Date.now();
+          if (activeAudio === audio) activeAudio = null;
+          resolve();
+        };
+        audio.onerror = () => {
+          if (activeAudio === audio) activeAudio = null;
+          audioCache.delete(audio.src);
+          reject(audio.error || new Error("De audio kon niet worden afgespeeld."));
+        };
 
         await audio.play();
         lastAudioActivityAt = Date.now();
