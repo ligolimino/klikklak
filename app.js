@@ -406,12 +406,79 @@
       : new URL(source, DATA.baseUrl).href;
   }
 
-  function playAudioSource(source) {
+  const AUDIO_START_DELAY_MS = 150;
+  let activeAudio = null;
+
+  function wait(milliseconds) {
+    return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+  }
+
+  function waitUntilAudioCanPlay(audio) {
+    if (audio.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
+      const audioIsReady = () => {
+        removeTemporaryListeners();
+        resolve();
+      };
+      const audioHasError = () => {
+        removeTemporaryListeners();
+        reject(audio.error || new Error("De audio kon niet worden geladen."));
+      };
+      const removeTemporaryListeners = () => {
+        audio.removeEventListener("canplay", audioIsReady);
+        audio.removeEventListener("error", audioHasError);
+      };
+
+      audio.addEventListener("canplay", audioIsReady, { once: true });
+      audio.addEventListener("error", audioHasError, { once: true });
+      audio.load();
+    });
+  }
+
+  function playAudioSource(source) {
+    return new Promise(async (resolve, reject) => {
       const audio = new Audio(resolveAudioSource(source));
-      audio.addEventListener("ended", resolve, { once: true });
-      audio.addEventListener("error", reject, { once: true });
-      audio.play().catch(reject);
+      audio.preload = "auto";
+
+      try {
+        await waitUntilAudioCanPlay(audio);
+
+        // Stop eerst een eventuele vorige opname. De korte pauze voorkomt dat
+        // sommige telefoons het begin van de nieuwe opname inslikken.
+        if (activeAudio && activeAudio !== audio) {
+          activeAudio.pause();
+          activeAudio.currentTime = 0;
+        }
+
+        activeAudio = audio;
+        audio.currentTime = 0;
+        await wait(AUDIO_START_DELAY_MS);
+
+        audio.addEventListener(
+          "ended",
+          () => {
+            if (activeAudio === audio) activeAudio = null;
+            resolve();
+          },
+          { once: true },
+        );
+        audio.addEventListener(
+          "error",
+          () => {
+            if (activeAudio === audio) activeAudio = null;
+            reject(audio.error || new Error("De audio kon niet worden afgespeeld."));
+          },
+          { once: true },
+        );
+
+        await audio.play();
+      } catch (error) {
+        if (activeAudio === audio) activeAudio = null;
+        reject(error);
+      }
     });
   }
 
@@ -464,7 +531,6 @@
         `assets/audio/woorden/${firstLetter}/${encodeURIComponent(text)}.mp3`,
         DATA.baseUrl,
       ).href;
-      const audio = new Audio(ownWordFile);
       let fallbackStarted = false;
       const useSafeFallback = () => {
         if (fallbackStarted) return;
@@ -476,8 +542,7 @@
           playSoundSequence(wordParts);
         }
       };
-      audio.addEventListener("error", useSafeFallback, { once: true });
-      audio.play().catch(useSafeFallback);
+      playAudioSource(ownWordFile).catch(useSafeFallback);
       return;
     }
   }
