@@ -411,6 +411,7 @@
   const AUDIO_WARMUP_LEAD_MS = 180;
   const AUDIO_WARMUP_TOTAL_MS = 520;
   const audioCache = new Map();
+  const activeLetterAudios = new Set();
   let activeAudio = null;
   let audioContext = null;
   let lastAudioActivityAt = 0;
@@ -522,7 +523,11 @@
       // Alleen volledige woorden hebben de extra opwarming nodig. Losse
       // letters moeten zonder merkbare wachttijd reageren.
       const context = shouldWarmUp ? prepareAudioContext() : null;
-      const audio = getAudio(source);
+      const cachedAudio = getAudio(source);
+      // Elke letterklik krijgt een eigen afspeelkopie. Zo kunnen verschillende
+      // letterklanken kort overlappen en bijna samen een woord vormen.
+      const audio = shouldWarmUp ? cachedAudio : cachedAudio.cloneNode();
+      audio.preload = "auto";
 
       try {
         // Alleen woordopnames wachten expliciet tot er voldoende audio geladen
@@ -532,15 +537,30 @@
           await warmUpAudioOutputIfNeeded(context);
         }
 
-        // Stop eerst een eventuele vorige opname. De korte pauze voorkomt dat
-        // sommige telefoons het begin van de nieuwe opname inslikken.
-        if (activeAudio && activeAudio !== audio) {
-          activeAudio.pause();
-          activeAudio.currentTime = 0;
+        if (shouldWarmUp) {
+          // Een volledig woord speelt altijd alleen en stopt ook losse letters.
+          if (activeAudio && activeAudio !== audio) {
+            activeAudio.pause();
+            activeAudio.currentTime = 0;
+          }
+          activeLetterAudios.forEach((letterAudio) => {
+            letterAudio.pause();
+            letterAudio.currentTime = 0;
+          });
+          activeLetterAudios.clear();
+          activeAudio = audio;
+          audio.pause();
+        } else {
+          // Een losse letter stopt een volledig woord, maar niet de andere
+          // losse letters die de cursist vlak voordien aanklikte.
+          if (activeAudio) {
+            activeAudio.pause();
+            activeAudio.currentTime = 0;
+            activeAudio = null;
+          }
+          activeLetterAudios.add(audio);
         }
 
-        activeAudio = audio;
-        audio.pause();
         audio.currentTime = 0;
         if (shouldWarmUp) {
           await wait(AUDIO_START_DELAY_MS);
@@ -548,11 +568,19 @@
 
         audio.onended = () => {
           lastAudioActivityAt = Date.now();
-          if (activeAudio === audio) activeAudio = null;
+          if (shouldWarmUp) {
+            if (activeAudio === audio) activeAudio = null;
+          } else {
+            activeLetterAudios.delete(audio);
+          }
           resolve();
         };
         audio.onerror = () => {
-          if (activeAudio === audio) activeAudio = null;
+          if (shouldWarmUp) {
+            if (activeAudio === audio) activeAudio = null;
+          } else {
+            activeLetterAudios.delete(audio);
+          }
           audioCache.delete(audio.src);
           reject(audio.error || new Error("De audio kon niet worden afgespeeld."));
         };
@@ -560,7 +588,11 @@
         await audio.play();
         lastAudioActivityAt = Date.now();
       } catch (error) {
-        if (activeAudio === audio) activeAudio = null;
+        if (shouldWarmUp) {
+          if (activeAudio === audio) activeAudio = null;
+        } else {
+          activeLetterAudios.delete(audio);
+        }
         reject(error);
       }
     });
