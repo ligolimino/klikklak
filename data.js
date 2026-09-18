@@ -45,6 +45,7 @@ window.LETTERLAB_DATA = {
     "kat",
     "kin",
     "kip",
+	"kik",
     "koe",
     "kom",
     "kop",
