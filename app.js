@@ -337,6 +337,15 @@
     return window.LETTERLAB_WORDLISTS?.[version] || [];
   }
 
+  // Snel opzoeken of een woord in de woordenlijst staat.
+  const dictionarySets = new Map();
+  function isDictionaryWord(word, version = state.dictionaryVersion) {
+    if (!dictionarySets.has(version)) {
+      dictionarySets.set(version, new Set(dictionaryWords(version)));
+    }
+    return dictionarySets.get(version).has(word);
+  }
+
   function splitWordAcrossGroups(word, groups) {
     const memo = new Map();
 
@@ -498,6 +507,11 @@
     });
   }
 
+  // Bestanden die niet bestaan (bv. een woord zonder opname) onthouden we.
+  // Zo wordt een ontbrekend bestand maar één keer opgevraagd en start de
+  // terugval (spellen) bij een volgende klik meteen.
+  const missingAudio = new Set();
+
   function getAudio(source) {
     const resolvedSource = resolveAudioSource(source);
     let audio = audioCache.get(resolvedSource);
@@ -505,11 +519,25 @@
     if (!audio) {
       audio = new Audio(resolvedSource);
       audio.preload = "auto";
+      audio.addEventListener(
+        "error",
+        () => {
+          missingAudio.add(resolvedSource);
+          if (audioCache.get(resolvedSource) === audio) {
+            audioCache.delete(resolvedSource);
+          }
+        },
+        { once: true },
+      );
       audioCache.set(resolvedSource, audio);
       audio.load();
     }
 
     return audio;
+  }
+
+  function audioIsKnownMissing(source) {
+    return missingAudio.has(resolveAudioSource(source));
   }
 
   // De korte, vaste letterklanken worden vooraf klaargezet en daarna steeds
@@ -518,7 +546,7 @@
     if (source) getAudio(source);
   });
 
-  function playAudioSource(source, shouldWarmUp = false) {
+  function playAudioSource(source, shouldWarmUp = false, onStarted = null) {
     return new Promise(async (resolve, reject) => {
       // Alleen volledige woorden hebben de extra opwarming nodig. Losse
       // letters moeten zonder merkbare wachttijd reageren.
@@ -587,6 +615,7 @@
 
         await audio.play();
         lastAudioActivityAt = Date.now();
+        if (onStarted) onStarted(audio);
       } catch (error) {
         if (shouldWarmUp) {
           if (activeAudio === audio) activeAudio = null;
@@ -598,16 +627,126 @@
     });
   }
 
-  async function playSoundSequence(parts) {
-    for (const part of parts) {
-      const source = ownAudio(`sound:${part}`) || builtInAudio(`sound:${part}`);
-      if (!source) continue;
+  // ---------------------------------------------------------------
+  // Spellen: losse klanken vlot na elkaar
+  // ---------------------------------------------------------------
+  // Elke klankopname heeft vooraan en achteraan wat stilte (ongeveer 0,3 s).
+  // Bij het spellen slaan we die stilte over: de volgende klank start zodra
+  // de vorige hoorbaar gedaan is, plus deze korte pauze.
+  // Kleiner getal = vloeiender, groter getal = duidelijker los.
+  const SPELL_GAP_MS = 120;
+  const SILENCE_THRESHOLD = 0.01; // ongeveer -40 dB
+  const soundTimings = new Map();
+  let decodeContext = null;
+  let spellRun = 0;
+
+  // Meet waar de hoorbare klank begint en eindigt (in seconden).
+  // Werkt ook voor eigen opnames. Lukt het niet, dan wordt gewoon gewacht
+  // tot de vorige klank volledig is afgelopen.
+  function measureSoundTiming(source) {
+    const resolvedSource = resolveAudioSource(source);
+    if (soundTimings.has(resolvedSource)) {
+      return soundTimings.get(resolvedSource);
+    }
+
+    const measurement = (async () => {
       try {
-        await playAudioSource(source, false);
+        const OfflineContext =
+          window.OfflineAudioContext || window.webkitOfflineAudioContext;
+        if (!OfflineContext || !window.fetch) return null;
+        decodeContext ||= new OfflineContext(1, 1, 44100);
+
+        const response = await fetch(resolvedSource);
+        if (!response.ok) return null;
+        const buffer = await decodeContext.decodeAudioData(
+          await response.arrayBuffer(),
+        );
+        const samples = buffer.getChannelData(0);
+
+        let first = 0;
+        while (first < samples.length && Math.abs(samples[first]) < SILENCE_THRESHOLD) {
+          first += 1;
+        }
+        let last = samples.length - 1;
+        while (last > first && Math.abs(samples[last]) < SILENCE_THRESHOLD) {
+          last -= 1;
+        }
+        if (first >= samples.length) return null;
+
+        return {
+          lead: first / buffer.sampleRate,
+          voicedEnd: (last + 1) / buffer.sampleRate,
+        };
       } catch {
-        // Een ontbrekend of defect bestand mag nooit een browserstem activeren.
+        return null;
+      }
+    })();
+
+    soundTimings.set(resolvedSource, measurement);
+    return measurement;
+  }
+
+  function stopLetterAudios() {
+    activeLetterAudios.forEach((letterAudio) => {
+      letterAudio.pause();
+      letterAudio.currentTime = 0;
+    });
+    activeLetterAudios.clear();
+  }
+
+  async function playSoundSequence(parts) {
+    const run = ++spellRun;
+    stopLetterAudios();
+
+    const sources = parts
+      .map((part) => ownAudio(`sound:${part}`) || builtInAudio(`sound:${part}`))
+      .filter(Boolean);
+    if (!sources.length) return;
+
+    // Meestal zijn de metingen al klaar (zie opstart). Anders wachten we
+    // hooguit heel even, zodat de cursist niet merkbaar moet wachten.
+    const timings = await Promise.race([
+      Promise.all(sources.map(measureSoundTiming)),
+      wait(400).then(() => null),
+    ]);
+
+    for (let index = 0; index < sources.length; index += 1) {
+      // Een nieuwe klik stopt de lopende spelling.
+      if (run !== spellRun) return;
+
+      let markStarted;
+      const started = new Promise((resolve) => {
+        markStarted = resolve;
+      });
+      // Een ontbrekend of defect bestand mag nooit een browserstem activeren.
+      const playing = playAudioSource(sources[index], false, markStarted).catch(
+        () => {},
+      );
+
+      const current = timings?.[index];
+      const next = timings?.[index + 1];
+
+      if (current && next) {
+        await Promise.race([started, playing]);
+        const delay = Math.max(
+          0,
+          (current.voicedEnd - next.lead) * 1000 + SPELL_GAP_MS,
+        );
+        await Promise.race([wait(delay), playing]);
+      } else {
+        await playing;
       }
     }
+  }
+
+  // Meet de vaste klanken alvast op de achtergrond, zodat het eerste
+  // gespelde woord meteen vlot klinkt.
+  if (APP_TYPE === "klikklak") {
+    window.setTimeout(() => {
+      [...new Set(Object.values(DATA.builtInAudio))].forEach((source) => {
+        if (source) measureSoundTiming(source);
+      });
+    }, 800);
   }
 
   function useBrowserVoice(text, parts) {
@@ -631,7 +770,50 @@
     speechSynthesis.speak(utterance);
   }
 
+  // Waar een woordopname kan staan, in volgorde van zoeken.
+  // - Alleen bestaande woorden: assets/audio/woorden/<eerste letter>/
+  // - Vrije combinaties (nonsenswoorden toegestaan):
+  //     * staat het woord NIET in de woordenlijst: eerst in .../woorden/nonsens/
+  //     * staat het woord wel in de woordenlijst: eerst in de lettermap
+  //   De andere map wordt telkens als tweede kans geprobeerd.
+  function wordAudioCandidates(word) {
+    if (!/^[a-z]+$/.test(word)) return [];
+
+    const inLetterFolder = `assets/audio/woorden/${word[0]}/${word}.mp3`;
+    if (state.onlyExistingWords) return [inLetterFolder];
+
+    const inNonsenseFolder = `assets/audio/woorden/nonsens/${word}.mp3`;
+    return isDictionaryWord(word)
+      ? [inLetterFolder, inNonsenseFolder]
+      : [inNonsenseFolder, inLetterFolder];
+  }
+
+  // Laadt de woordopname alvast zodra een woord op het scherm komt.
+  // De cursist hoort het woord dan meteen, en een ontbrekende opname is
+  // vooraf al gekend (dan start het spellen zonder wachttijd).
+  function prefetchWordAudio(word) {
+    wordAudioCandidates(word).forEach((source) => {
+      if (!audioIsKnownMissing(source)) getAudio(source);
+    });
+  }
+
+  // Probeert de opnames na elkaar. Geeft true zodra er één begint te spelen.
+  async function startFirstAvailable(sources) {
+    for (const source of sources) {
+      if (audioIsKnownMissing(source)) continue;
+      const started = await new Promise((done) => {
+        playAudioSource(source, true, () => done(true)).catch(() => done(false));
+      });
+      if (started) return true;
+    }
+    return false;
+  }
+
   function speak(text, key = text, parts = []) {
+    // Elke nieuwe klik stopt een spelling die nog bezig is.
+    spellRun += 1;
+    const run = spellRun;
+
     // In het klik-klakboekje gebruiken we uitsluitend gecontroleerde opnames.
     // Zo kan een browser nooit een letternaam of buitenlandse uitspraak kiezen.
     const selectedAudio = ownAudio(key) || builtInAudio(key);
@@ -641,26 +823,17 @@
       return;
     }
 
-    if (key.startsWith("word:") && /^[a-z]+$/.test(text)) {
-      const firstLetter = text[0];
-      const ownWordFile = new URL(
-        `assets/audio/woorden/${firstLetter}/${encodeURIComponent(text)}.mp3`,
-        DATA.baseUrl,
-      ).href;
-      let fallbackStarted = false;
-      const useSafeFallback = () => {
-        if (fallbackStarted) return;
-        fallbackStarted = true;
-        const wordParts = parts.length ? parts : tokenize(text);
-        if (state.onlyExistingWords) {
-          useBrowserVoice(text, wordParts);
-        } else {
-          playSoundSequence(wordParts);
-        }
-      };
-      playAudioSource(ownWordFile, true).catch(useSafeFallback);
-      return;
-    }
+    if (!key.startsWith("word:")) return;
+
+    const wordParts = parts.length ? parts : tokenize(text);
+    startFirstAvailable(wordAudioCandidates(text)).then((started) => {
+      if (started || run !== spellRun) return;
+      if (state.onlyExistingWords) {
+        useBrowserVoice(text, wordParts);
+      } else {
+        playSoundSequence(wordParts);
+      }
+    });
   }
 
   function getCurrentQuestion() {
@@ -827,17 +1000,19 @@
     app.innerHTML = `${header()}
       <section class="screen booklet">
         <div class="book-columns" style="--book-columns:${groups.length}">${columns}</div>
-        <div class="book-word">
+        <div class="book-word" style="--letters:${Math.max(word.length, 3)}">
           <button
             class="listen"
             data-sound="${escapeHtml(word)}"
             data-audio-key="word:${escapeHtml(word)}"
-            data-word-parts="${escapeHtml(parts.join(","))}"
+            data-word-parts="${escapeHtml(parts.filter(Boolean).join(","))}"
             aria-label="Luister"
           >${icon("speaker")}</button>
-          <span>${escapeHtml(word)}</span>
+          <span class="book-word-text">${escapeHtml(word)}</span>
         </div>
       </section>`;
+
+    prefetchWordAudio(word);
   }
   function manualPanel() {
     const graphemes = tokenize(state.draftWord);

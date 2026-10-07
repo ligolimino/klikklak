@@ -1,0 +1,4 @@
+# Visual Studio en Windows-mapinstellingen niet publiceren
+.vs/
+desktop.ini
+Thumbs.db

@@ -48,21 +48,33 @@ Letterlab gebruikt deze volgorde:
 
 1. een opname die lokaal in het lesgeversgedeelte werd toegevoegd;
 2. een vaste opname van een losse klank;
-3. `assets/audio/woorden/eerste-letter/woord.mp3` voor een volledig woord;
+3. een opname van het volledige woord:
+   - bij **Alleen bestaande Nederlandse woorden**:
+     `assets/audio/woorden/eerste-letter/woord.mp3`;
+   - bij vrije combinaties (nonsenswoorden toegestaan): eerst
+     `assets/audio/woorden/nonsens/woord.mp3`, daarna de lettermap.
+     Staat het woord wel in de woordenlijst (bv. `kip`), dan wordt eerst de
+     lettermap geprobeerd en daarna `nonsens`;
 4. zonder volledige woordopname:
    - bij **Alleen bestaande Nederlandse woorden**: bij voorkeur een Belgische
      Nederlandse browserstem;
-   - bij vrije combinaties: de vaste klanken van het woord na elkaar.
+   - bij vrije combinaties: de vaste klanken van het woord vlot na elkaar
+     (gespeld). De stilte vooraan en achteraan elke klankopname wordt daarbij
+     overgeslagen. De pauze tussen twee klanken stel je in met
+     `SPELL_GAP_MS` in `app.js` (standaard 120 milliseconden).
 
-Losse letters en klanken gebruiken nooit de automatische browserstem. Zo wordt
-`k` niet als de letternaam *kaa* uitgesproken. Nonsenswoorden krijgen evenmin
-een browseruitspraak en kunnen dus niet per ongeluk Engels worden uitgesproken.
+Ontbrekende opnames worden per sessie onthouden en de opname van het woord op
+het scherm wordt vooraf geladen. Zo start het woord of de spelling zonder
+merkbare wachttijd.
 
 Voorbeeld: de eigen uitspraak van `schorst` staat als
 `assets/audio/woorden/s/schorst.mp3`.
 
 Met `plaats-woordaudio.ps1` kunnen losse MP3-bestanden automatisch over de
-juiste lettermappen worden verdeeld.
+juiste lettermappen worden verdeeld. Voeg `-Nonsens` toe om opnames van
+nonsenswoorden in `assets/audio/woorden/nonsens/` te plaatsen.
+
+Voorbeeld nonsenswoord: `mim` staat als `assets/audio/woorden/nonsens/mim.mp3`.
 
 ## Belangrijke uitspraakgrens
 
@@ -104,5 +116,6 @@ dezelfde manier opnieuw worden geopend.
 - Draai iedere positie enkele keren omhoog en omlaag.
 - Controleer de volledige woordenlijst via de CSV.
 - Test minstens één woord met eigen MP3 en één woord zonder MP3.
+- Test bij vrije combinaties ook één nonsenswoord met en één zonder MP3.
 - Test de Genially-insluiting op Android en iPhone, staand en liggend.
 - Bewaar de volledige ZIP en het Excelbestand als back-up.

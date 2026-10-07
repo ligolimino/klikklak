@@ -220,6 +220,7 @@ button {
 .listen {
   width: 84px;
   height: 84px;
+  padding: 0;
   border-radius: 26px;
   background: var(--teal);
   color: #fff;
@@ -227,6 +228,10 @@ button {
   display: grid;
   place-items: center;
   box-shadow: var(--shadow);
+  cursor: pointer;
+}
+.listen .icon {
+  display: block;
 }
 .listen .icon {
   width: 42px;
@@ -474,13 +479,35 @@ button {
   gap: 22px;
 }
 .book-word {
+  /* Ruimte tussen de luisterknop en het woord. */
+  --word-gap: clamp(16px, 4vw, 32px);
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 4px;
-  font-size: clamp(3.6rem, 18vw, 8rem);
+  gap: var(--word-gap);
+  min-width: 0;
+  /* Lange woorden worden kleiner, zodat ze altijd naast de knop passen.
+     --letters wordt in app.js ingevuld (aantal letters van het woord). */
+  font-size: min(
+    8rem,
+    18vw,
+    calc((100vw - 84px - var(--word-gap) - 48px) / (var(--letters, 3) * 0.55))
+  );
   font-weight: 700;
   color: var(--teal-dark);
+}
+.book-word .listen {
+  flex: 0 0 auto;
+}
+.book-word-text {
+  /* Andika heeft boven de letters veel meer ruimte dan eronder. Daardoor
+     staat een woord in kleine letters optisch te laag naast de knop.
+     Met line-height 1 en een kleine verschuiving omhoog valt het midden
+     van de letters samen met het midden van de knop. */
+  display: block;
+  line-height: 1;
+  transform: translateY(-0.14em);
+  white-space: nowrap;
 }
 .book-columns {
   display: grid;
@@ -492,7 +519,12 @@ button {
 .book-col {
   display: grid;
   gap: 8px;
+  /* Pijltjes gecentreerd boven en onder de letterkaart. */
+  justify-items: center;
   text-align: center;
+}
+.book-col .sound-card {
+  justify-self: stretch;
 }
 .sound-card {
   min-height: 104px;

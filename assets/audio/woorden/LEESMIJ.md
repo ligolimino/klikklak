@@ -11,6 +11,13 @@ Gebruik uitsluitend kleine letters en geef het bestand exact de naam van het
 woord. Letterlab probeert eerst deze opname af te spelen. Alleen wanneer het
 bestand ontbreekt, wordt de Belgisch-Nederlandse browserstem gebruikt.
 
+## Nonsenswoorden
+
+Opnames van nonsenswoorden horen in de map `nonsens/`, bijvoorbeeld
+`nonsens/mim.mp3`. Ze worden alleen gebruikt in boekjes zonder
+**Alleen bestaande Nederlandse woorden**. Ontbreekt de opname, dan worden de
+klanken van het woord vlot na elkaar gespeld (nooit een browserstem).
+
 De beheerpagina kan per klik-klakboekje een CSV-inspreeklijst downloaden. Die
 lijst vermeldt voor ieder woord de gewenste bestandsnaam en map.
 
