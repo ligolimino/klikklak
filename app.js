@@ -826,6 +826,7 @@
 
     app.innerHTML = `${header()}
       <section class="screen booklet">
+        <div class="book-columns" style="--book-columns:${groups.length}">${columns}</div>
         <div class="book-word">
           <button
             class="listen"
@@ -836,7 +837,6 @@
           >${icon("speaker")}</button>
           <span>${escapeHtml(word)}</span>
         </div>
-        <div class="book-columns" style="--book-columns:${groups.length}">${columns}</div>
       </section>`;
   }
   function manualPanel() {
