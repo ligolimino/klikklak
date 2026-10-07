@@ -475,8 +475,8 @@ button {
    ================================================================ */
 
 .booklet {
-  display: grid;
-  gap: 22px;
+    display: grid;
+    gap: clamp(24px, 6vh, 64px);
 }
 .book-word {
   /* Ruimte tussen de luisterknop en het woord. */
