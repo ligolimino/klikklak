@@ -9,6 +9,65 @@
   const app = document.querySelector("#app");
   const APP_TYPE = document.body.dataset.app || "beheer";
 
+  // ================================================================
+  // 1b. VOLLEDIGE VERSIE: instructie-audio bovenaan
+  // ================================================================
+  // Alleen met "weergave=volledig" (en een instructie) in de link
+  // verschijnt bovenaan een balk met een afspeelknop voor de opdracht.
+  // Zonder die toevoeging ziet de cursist het boekje zoals altijd, met de
+  // klank- en woordknoppen. Bestaande links blijven dus ongewijzigd.
+
+  const PAGE_PARAMETERS = new URLSearchParams(location.search);
+  const FULL_VIEW =
+    (PAGE_PARAMETERS.get("weergave") || "").trim().toLowerCase() ===
+    "volledig";
+  const INSTRUCTION = (PAGE_PARAMETERS.get("instructie") || "").trim();
+  const INSTRUCTION_FOLDER = "assets/audio/instructies/";
+  const INSTRUCTION_EXTENSIONS = [".mp3", ".m4a", ".wav"];
+
+  if (FULL_VIEW) {
+    document.body.classList.add("full-view");
+  }
+
+  function instructionCandidates() {
+    if (!FULL_VIEW || !INSTRUCTION) return [];
+    const toUrl = (path) => new URL(path, DATA.baseUrl).href;
+    const isLink =
+      /^(https?:)?\/\//i.test(INSTRUCTION) || /^\.{0,2}\//.test(INSTRUCTION);
+    if (isLink) return [toUrl(INSTRUCTION)];
+    const file = INSTRUCTION.split("/").map(encodeURIComponent).join("/");
+    if (/\.[a-z0-9]{2,4}$/i.test(INSTRUCTION)) {
+      return [toUrl(INSTRUCTION_FOLDER + file)];
+    }
+    return INSTRUCTION_EXTENSIONS.map((extension) =>
+      toUrl(INSTRUCTION_FOLDER + file + extension),
+    );
+  }
+
+  // Zoekt het eerste instructiebestand dat echt bestaat.
+  function findInstruction() {
+    const candidates = instructionCandidates();
+    return new Promise((resolve) => {
+      let index = 0;
+      const tryNext = () => {
+        if (index >= candidates.length) {
+          resolve(null);
+          return;
+        }
+        const source = candidates[index];
+        index += 1;
+        const probe = new Audio();
+        probe.preload = "metadata";
+        probe.addEventListener("loadedmetadata", () => resolve(source), {
+          once: true,
+        });
+        probe.addEventListener("error", tryNext, { once: true });
+        probe.src = source;
+      };
+      tryNext();
+    });
+  }
+
   const STORAGE_PREFIX = DATA.storageNamespace || "letterlab";
   const STORAGE_KEYS = {
     questions: `${STORAGE_PREFIX}-questions-v1`,
@@ -225,6 +284,8 @@
     editingExerciseId: null,
     publicationMessage: "",
     linkToImport: "",
+    // Volledige versie: adres van de gevonden instructie-audio.
+    instructionSource: "",
   };
 
   function saveToStorage() {
@@ -997,7 +1058,17 @@
       })
       .join("");
 
+    const instructionBar =
+      FULL_VIEW && state.instructionSource
+        ? `<div class="instruction-bar">
+            <button class="play-instruction" data-action="speak-instruction" aria-label="Luister naar de opdracht">
+              ${icon("play")}
+            </button>
+          </div>`
+        : "";
+
     app.innerHTML = `${header()}
+      ${instructionBar}
       <section class="screen booklet">
         <div class="book-columns" style="--book-columns:${groups.length}">${columns}</div>
         <div class="book-word" style="--letters:${Math.max(word.length, 3)}">
@@ -1937,6 +2008,10 @@
     } else if (action === "speak-word") {
       const question = getCurrentQuestion();
       speak(question.word, `word:${question.word}`);
+    } else if (action === "speak-instruction") {
+      if (state.instructionSource) {
+        playAudioSource(state.instructionSource, true).catch(() => {});
+      }
     } else if (action === "erase" && !state.result) {
       state.typed = state.typed.slice(0, -1);
       dictation();
@@ -1988,4 +2063,12 @@
 
   // Start de app voor de eerste keer op.
   render();
+
+  // Volledige versie: zoek de instructie-audio en toon dan de balk.
+  if (FULL_VIEW && INSTRUCTION) {
+    findInstruction().then((source) => {
+      state.instructionSource = source || "";
+      if (source && state.mode === "booklet") booklet();
+    });
+  }
 })();

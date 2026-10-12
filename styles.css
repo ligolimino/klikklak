@@ -977,3 +977,57 @@ button {
     min-height: 42px;
   }
 }
+
+/* ================================================================
+   9. Volledige versie (link met weergave=volledig)
+   ================================================================ */
+
+/* Instructiebalk bovenaan met één ronde afspeelknop. */
+.instruction-bar {
+  align-self: stretch;
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 8px;
+  border-bottom: 1px solid var(--line);
+}
+.play-instruction {
+  width: 52px;
+  height: 52px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.play-instruction .icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+.play-instruction:focus-visible {
+  outline: 3px solid rgba(231, 66, 122, 0.45);
+  outline-offset: 3px;
+}
+@media (max-height: 740px) {
+  .instruction-bar {
+    padding: 2px 0 4px;
+  }
+  .play-instruction {
+    width: 42px;
+    height: 42px;
+  }
+  .play-instruction .icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* In het klik-klakboekje staat de balk boven het boekje, over de volle
+   breedte en met een rustige achtergrond. */
+body[data-app="klikklak"] .instruction-bar {
+  flex: 0 0 auto;
+  background: #fff;
+}

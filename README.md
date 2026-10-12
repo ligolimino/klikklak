@@ -28,3 +28,18 @@ Lees `BEHEER-KLIKKLAK.md` voor woordenlijsten en eigen MP3-opnames.
 Publiceer en test deze repository eerst. Vervang daarna eventuele bestaande
 links in Genially. Verwijder de oude gecombineerde repository pas wanneer alle
 vervangen links op pc, Android en iPhone werken.
+
+## Twee weergaven: onderkant en volledig
+
+| Weergave | Wat staat erop | Link |
+|---|---|---|
+| Onderkant (standaard) | het boekje met klank- en woordknoppen | zoals altijd |
+| Volledig | instructie-audio bovenaan + het boekje | met `&weergave=volledig&instructie=naam` erachter |
+
+Alle bestaande links blijven de onderkant tonen, precies zoals vroeger. De
+Excel-lijst maakt per boekje beide links (tabblad **Klik-klaklinken**).
+
+Zet instructie-opnames in `assets/audio/instructies/`. In Excel typ je alleen
+de bestandsnaam; `.mp3` mag je weglaten. Een volledige link (`https://...`)
+werkt ook. Wordt de instructie niet gevonden, dan verschijnt de balk gewoon
+niet.
