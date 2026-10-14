@@ -2061,6 +2061,49 @@
     }
   });
 
+  // ================================================================
+  // Vegen over een letterkaart: omhoog vegen = volgende letter,
+  // omlaag vegen = vorige letter (zoals een blad omslaan).
+  // ================================================================
+  let swipe = null;
+  let swallowClickUntil = 0;
+
+  app.addEventListener("pointerdown", (event) => {
+    const card = event.target.closest(".book-col .sound-card");
+    if (!card) return;
+    const arrow = card.closest(".book-col").querySelector("[data-book]");
+    swipe = { x: event.clientX, y: event.clientY, column: arrow?.dataset.book };
+  });
+
+  app.addEventListener("pointerup", (event) => {
+    if (!swipe) return;
+    const dx = event.clientX - swipe.x;
+    const dy = event.clientY - swipe.y;
+    const column = swipe.column;
+    swipe = null;
+    // Minstens 30 pixels, en vooral verticaal.
+    if (column === undefined || Math.abs(dy) < 30 || Math.abs(dy) < Math.abs(dx)) return;
+    const delta = dy < 0 ? 1 : -1;
+    // Na het vegen mag de kaart niet ook nog haar klank afspelen.
+    swallowClickUntil = Date.now() + 400;
+    app.querySelector(`[data-book="${column}"][data-delta="${delta}"]`)?.click();
+  });
+
+  app.addEventListener("pointercancel", () => {
+    swipe = null;
+  });
+
+  app.addEventListener(
+      "click",
+      (event) => {
+        if (Date.now() < swallowClickUntil && event.target.closest(".sound-card")) {
+          event.stopPropagation();
+          event.preventDefault();
+        }
+      },
+      true,
+  );
+
   // Start de app voor de eerste keer op.
   render();
 

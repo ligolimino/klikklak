@@ -1039,3 +1039,8 @@ body,
 .app-shell {
   background: transparent;
 }
+
+/* Vegen op een letterkaart: de pagina mag dan niet mee scrollen. */
+.book-col .sound-card {
+  touch-action: none;
+}
