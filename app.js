@@ -29,6 +29,19 @@
     document.body.classList.add("full-view");
   }
 
+  // Wat staat er onder het boekje? Handig voor een instructiemoment.
+  //   (niets)          luisterknop en woord, zoals altijd
+  //   onder=luisteren  luisterknop; het woord verschijnt pas na het luisteren
+  //   onder=audio      alleen de luisterknop
+  //   onder=woord      alleen het woord
+  //   onder=geen       niets: alleen het boekje
+  const BELOW = (PAGE_PARAMETERS.get("onder") || "").trim().toLowerCase();
+  const BELOW_SHOWS_LISTEN = !["woord", "geen"].includes(BELOW);
+  const BELOW_SHOWS_WORD = !["audio", "geen"].includes(BELOW);
+  const WORD_AFTER_LISTENING = BELOW === "luisteren";
+  // Het woord dat al beluisterd werd (bij onder=luisteren).
+  let revealedWord = "";
+
   function instructionCandidates() {
     if (!FULL_VIEW || !INSTRUCTION) return [];
     const toUrl = (path) => new URL(path, DATA.baseUrl).href;
@@ -1067,20 +1080,33 @@
           </div>`
         : "";
 
-    app.innerHTML = `${header()}
-      ${instructionBar}
-      <section class="screen booklet">
-        <div class="book-columns" style="--book-columns:${groups.length}">${columns}</div>
-        <div class="book-word" style="--letters:${Math.max(word.length, 3)}">
-          <button
+    const listenButton = BELOW_SHOWS_LISTEN
+      ? `<button
             class="listen"
             data-sound="${escapeHtml(word)}"
             data-audio-key="word:${escapeHtml(word)}"
             data-word-parts="${escapeHtml(parts.filter(Boolean).join(","))}"
             aria-label="Luister"
-          >${icon("speaker")}</button>
-          <span class="book-word-text">${escapeHtml(word)}</span>
-        </div>
+          >${icon("speaker")}</button>`
+      : "";
+    // Bij onder=luisteren blijft de plaats van het woord gereserveerd, zodat
+    // het boekje niet verspringt wanneer het woord verschijnt.
+    const wordIsHidden = WORD_AFTER_LISTENING && revealedWord !== word;
+    const wordText = BELOW_SHOWS_WORD
+      ? `<span class="book-word-text ${wordIsHidden ? "is-hidden" : ""}">${escapeHtml(word)}</span>`
+      : "";
+    const wordBar =
+      listenButton || wordText
+        ? `<div class="book-word" style="--letters:${Math.max(word.length, 3)}">
+            ${listenButton}${wordText}
+          </div>`
+        : "";
+
+    app.innerHTML = `${header()}
+      ${instructionBar}
+      <section class="screen booklet">
+        <div class="book-columns" style="--book-columns:${groups.length}">${columns}</div>
+        ${wordBar}
       </section>`;
 
     prefetchWordAudio(word);
@@ -1852,6 +1878,14 @@
         target.dataset.audioKey || `sound:${target.dataset.sound}`,
         target.dataset.wordParts?.split(",").filter(Boolean) || [],
       );
+      // onder=luisteren: na het luisteren verschijnt het woord. Zonder het
+      // scherm opnieuw op te bouwen, anders stopt het geluid.
+      if (WORD_AFTER_LISTENING && target.dataset.audioKey?.startsWith("word:")) {
+        revealedWord = target.dataset.sound;
+        document
+          .querySelector(".book-word-text.is-hidden")
+          ?.classList.remove("is-hidden");
+      }
       return;
     }
     if (target.dataset.book !== undefined) {

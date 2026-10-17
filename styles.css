@@ -509,6 +509,14 @@ button {
   transform: translateY(-0.14em);
   white-space: nowrap;
 }
+/* onder=luisteren: het woord staat er al, maar onzichtbaar, tot de
+   cursist op de luisterknop drukt. */
+.book-word-text {
+  transition: opacity 250ms ease;
+}
+.book-word-text.is-hidden {
+  opacity: 0;
+}
 .book-columns {
   display: grid;
   grid-template-columns: repeat(var(--book-columns, 3), minmax(0, 1fr));

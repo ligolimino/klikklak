@@ -43,3 +43,16 @@ Zet instructie-opnames in `assets/audio/instructies/`. In Excel typ je alleen
 de bestandsnaam; `.mp3` mag je weglaten. Een volledige link (`https://...`)
 werkt ook. Wordt de instructie niet gevonden, dan verschijnt de balk gewoon
 niet.
+
+## Wat staat er onder het boekje?
+
+Met `onder=` in de link kies je wat er onder de flapjes staat. Werkt in beide
+weergaven.
+
+| In de link | Onder het boekje |
+|---|---|
+| (niets) | woord en luisterknop, zoals altijd |
+| `onder=luisteren` | luisterknop; het woord verschijnt pas na het luisteren |
+| `onder=audio` | alleen de luisterknop |
+| `onder=woord` | alleen het woord |
+| `onder=geen` | niets: alleen het boekje |
