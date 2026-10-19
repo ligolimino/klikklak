@@ -17,14 +17,25 @@
 :root {
   /* Pas hier de hoofdkleuren van de volledige app aan. */
   --ink: #056181;
+  --muted: #4f6f78;
   --teal: #087f8c;
   --teal-dark: #08646d;
-  --blue: #d9f2f4;
+  --teal-soft: #d9f2f4;
   --pink: #e7427a;
-  --paper: #f7fbfb;
+  --pink-soft: #fde4ee;
+  --paper: #f3f8f8;
+  --card: #ffffff;
   --line: #c8dfe1;
   --good: #16805d;
-  --bad: #c53b56;
+  --warn: #a8551b;
+  --ligo-orange: #e06025;
+  --ligo-light-blue: #09b9bb;
+  --ligo-dark-blue: #056181;
+  --ligo-azure: #82ccb1;
+  --ligo-pink: #f6d2c0;
+  --warn-soft: #fff1e3;
+  --shadow: 0 8px 26px rgba(20, 67, 79, 0.10);
+  --radius: 18px;
   --shadow: 0 12px 34px rgba(20, 67, 79, 0.13);
 }
 
