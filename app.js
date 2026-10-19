@@ -22,10 +22,10 @@
     (PAGE_PARAMETERS.get("weergave") || "").trim().toLowerCase() ===
     "volledig";
   const INSTRUCTION = (PAGE_PARAMETERS.get("instructie") || "").trim();
-  // Alle opnames staan centraal in de repository 'audio'
-  // (ligolimino.github.io/audio/). De mappen in deze repository blijven
+  // Alle opnames staan centraal in de repository 'assets'
+  // (ligolimino.github.io/assets/audio/). De mappen in deze repository blijven
   // als tweede kans bestaan, zodat oudere links altijd blijven werken.
-  const CENTRAL_AUDIO = "../audio/";
+  const CENTRAL_AUDIO = "../assets/audio/";
   const INSTRUCTION_FOLDERS = [
     `${CENTRAL_AUDIO}instructies/`,
     "assets/audio/instructies/",
