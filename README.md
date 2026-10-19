@@ -39,7 +39,9 @@ vervangen links op pc, Android en iPhone werken.
 Alle bestaande links blijven de onderkant tonen, precies zoals vroeger. De
 Excel-lijst maakt per boekje beide links (tabblad **Klik-klaklinken**).
 
-Zet instructie-opnames in `assets/audio/instructies/`. In Excel typ je alleen
+Zet instructie-opnames in de repository **audio**, map `instructies/`
+(of voeg ze toe met de knop op de createpagina). De oude map
+`assets/audio/instructies/` werkt nog als tweede kans. In Excel typ je alleen
 de bestandsnaam; `.mp3` mag je weglaten. Een volledige link (`https://...`)
 werkt ook. Wordt de instructie niet gevonden, dan verschijnt de balk gewoon
 niet.
@@ -56,3 +58,12 @@ weergaven.
 | `onder=audio` | alleen de luisterknop |
 | `onder=woord` | alleen het woord |
 | `onder=geen` | niets: alleen het boekje |
+
+## Opnames staan centraal
+
+Sinds oktober 2026 staan alle opnames in één repository: **ligolimino/audio**
+(`klanken/`, `woorden/<eerste letter>/`, `woorden/nonsens/`, `instructies/`,
+`zinnen/`). Deze tool zoekt daar eerst. De oude mappen in deze repository
+blijven als tweede kans bestaan, zodat oudere links altijd blijven werken.
+Nieuwe opnames voeg je toe met de createpagina of rechtstreeks in de
+audio-repository.

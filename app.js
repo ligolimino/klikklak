@@ -22,8 +22,22 @@
     (PAGE_PARAMETERS.get("weergave") || "").trim().toLowerCase() ===
     "volledig";
   const INSTRUCTION = (PAGE_PARAMETERS.get("instructie") || "").trim();
-  const INSTRUCTION_FOLDER = "assets/audio/instructies/";
+  // Alle opnames staan centraal in de repository 'audio'
+  // (ligolimino.github.io/audio/). De mappen in deze repository blijven
+  // als tweede kans bestaan, zodat oudere links altijd blijven werken.
+  const CENTRAL_AUDIO = "../audio/";
+  const INSTRUCTION_FOLDERS = [
+    `${CENTRAL_AUDIO}instructies/`,
+    "assets/audio/instructies/",
+  ];
   const INSTRUCTION_EXTENSIONS = [".mp3", ".m4a", ".wav"];
+
+  // Namen die Windows niet toelaat als bestandsnaam. De opname van
+  // bv. het woord 'nul' heet daarom 'nul_.mp3'.
+  const RESERVED_NAMES = ["con", "prn", "aux", "nul"];
+  function audioFileName(word) {
+    return RESERVED_NAMES.includes(word) ? `${word}_` : word;
+  }
 
   if (FULL_VIEW) {
     document.body.classList.add("full-view");
@@ -50,10 +64,12 @@
     if (isLink) return [toUrl(INSTRUCTION)];
     const file = INSTRUCTION.split("/").map(encodeURIComponent).join("/");
     if (/\.[a-z0-9]{2,4}$/i.test(INSTRUCTION)) {
-      return [toUrl(INSTRUCTION_FOLDER + file)];
+      return INSTRUCTION_FOLDERS.map((folder) => toUrl(folder + file));
     }
-    return INSTRUCTION_EXTENSIONS.map((extension) =>
-      toUrl(INSTRUCTION_FOLDER + file + extension),
+    return INSTRUCTION_FOLDERS.flatMap((folder) =>
+      INSTRUCTION_EXTENSIONS.map((extension) =>
+        toUrl(folder + file + extension),
+      ),
     );
   }
 
@@ -845,30 +861,47 @@
   }
 
   // Waar een woordopname kan staan, in volgorde van zoeken.
-  // - Alleen bestaande woorden: assets/audio/woorden/<eerste letter>/
+  // - Alleen bestaande woorden: woorden/<eerste letter>/
   // - Vrije combinaties (nonsenswoorden toegestaan):
-  //     * staat het woord NIET in de woordenlijst: eerst in .../woorden/nonsens/
+  //     * staat het woord NIET in de woordenlijst: eerst in woorden/nonsens/
   //     * staat het woord wel in de woordenlijst: eerst in de lettermap
   //   De andere map wordt telkens als tweede kans geprobeerd.
+  // Eerst in de centrale audio-repository, daarna in deze repository.
   function wordAudioCandidates(word) {
     if (!/^[a-z]+$/.test(word)) return [];
 
-    const inLetterFolder = `assets/audio/woorden/${word[0]}/${word}.mp3`;
-    if (state.onlyExistingWords) return [inLetterFolder];
+    const file = `${audioFileName(word)}.mp3`;
+    const roots = [`${CENTRAL_AUDIO}woorden/`, "assets/audio/woorden/"];
+    const letterFolder = (root) => `${root}${word[0]}/${file}`;
+    const nonsenseFolder = (root) => `${root}nonsens/${file}`;
 
-    const inNonsenseFolder = `assets/audio/woorden/nonsens/${word}.mp3`;
-    return isDictionaryWord(word)
-      ? [inLetterFolder, inNonsenseFolder]
-      : [inNonsenseFolder, inLetterFolder];
+    if (state.onlyExistingWords) return roots.map(letterFolder);
+
+    const order = isDictionaryWord(word)
+      ? [letterFolder, nonsenseFolder]
+      : [nonsenseFolder, letterFolder];
+    return roots.flatMap((root) => order.map((place) => place(root)));
   }
 
   // Laadt de woordopname alvast zodra een woord op het scherm komt.
   // De cursist hoort het woord dan meteen, en een ontbrekende opname is
   // vooraf al gekend (dan start het spellen zonder wachttijd).
+  // De plaatsen worden na elkaar geprobeerd: pas als een plaats niet
+  // bestaat, wordt de volgende geladen. Zo wordt een opname nooit dubbel
+  // gedownload.
   function prefetchWordAudio(word) {
-    wordAudioCandidates(word).forEach((source) => {
-      if (!audioIsKnownMissing(source)) getAudio(source);
-    });
+    const sources = wordAudioCandidates(word);
+    const tryFrom = (index) => {
+      while (index < sources.length && audioIsKnownMissing(sources[index])) {
+        index += 1;
+      }
+      if (index >= sources.length) return;
+      const audio = getAudio(sources[index]);
+      audio.addEventListener("error", () => tryFrom(index + 1), {
+        once: true,
+      });
+    };
+    tryFrom(0);
   }
 
   // Probeert de opnames na elkaar. Geeft true zodra er één begint te spelen.
@@ -1362,12 +1395,12 @@
     }
 
     const rows = [
-      ["woord", "opbouw", "voorgestelde bestandsnaam", "map in GitHub"],
+      ["woord", "opbouw", "voorgestelde bestandsnaam", "map in de repository audio"],
       ...entries.map((entry) => [
         entry.word,
         entry.parts.map((part) => part || "(leeg)").join(" - "),
-        `${entry.word}.mp3`,
-        `assets/audio/woorden/${entry.word[0]}/`,
+        `${audioFileName(entry.word)}.mp3`,
+        `woorden/${entry.word[0]}/`,
       ]),
     ];
     const csv = rows
